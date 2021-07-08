@@ -71,8 +71,8 @@ class RNNLeakyCell(nn.RNNCellBase):
         input_by_w = input @ self.weight_ih.T
         for istep in range(nsteps):
             self_ = hx @ self.weight_hh.T
-            htmp = self.actf(input_by_w[istep, :, :] + self_)
-            hx = (1 - self.leak_rate) * hx + self.leak_rate * htmp
+            htmp = input_by_w[istep, :, :] + self_
+            hx = self.actf((1 - self.leak_rate) * hx + self.leak_rate * htmp)
             ret[istep, :, :] = hx
 
         return ret, hx
