@@ -8,7 +8,7 @@ def random_weights(input_size: int = 1,
                    distribution: str = 'normal',
                    dist_params: [float, float] = [0, 1],
                    spectral_radius: float = None,
-                   seed: float = None):
+                   seed: int = None):
     '''
     Generate random weights according to parameters
 
@@ -28,14 +28,17 @@ def random_weights(input_size: int = 1,
         output_size = input_size
 
     if spectral_radius is not None and input_size != output_size:
-        raise(ValueError, 'spectral_radius can be defined only for square matrices (nbUnitsIN == nbUnitsOUT)')
+        raise ValueError('spectral_radius can be defined only for square matrices (nbUnitsIN == nbUnitsOUT)')
 
     if sparsity > 1 or sparsity < 0:
-        raise(ValueError, 'sparsity argument is a float between 0 and 1')
+        raise ValueError('sparsity argument is a float between 0 and 1')
 
     # Set the seed for the random weight generation
     if seed is not None:
-        torch.manual_seed(seed)
+        if not isinstance(seed, int):
+            raise ValueError('seed must be an integer with base 10')
+        else:
+            torch.manual_seed(seed)
 
     # Uniform random distribution of weights:
     if distribution == 'uniform':
