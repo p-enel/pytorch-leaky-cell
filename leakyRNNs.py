@@ -4,8 +4,8 @@ from leakycell import RNNLeakyCell
 from typing import Callable
 
 
-class LeakyRNN():
-    '''A basic leaky RNN trainable with backpropagation
+class LeakyRNN:
+    """A basic leaky RNN trainable with backpropagation
 
     Arguments
     ---------
@@ -19,14 +19,29 @@ class LeakyRNN():
     hidden_weights: 2D torch.tensor<hidden_size, hidden_size>, optional - a matrix containing the hidden weights
     actf: activation function - the nonlinear activation function of the leaky cell
     actfout: activation function - the nonlinear activation function of the output layer
-    '''
-    def __init__(self, input_size: int = 1, hidden_size: int = 100, output_size: int = 2, tau: float = 4,
-                 spectral_radius: float = .9, input_weights: torch.tensor = None,
-                 hidden_weights: torch.tensor = None, actf: Callable[[torch.tensor], torch.tensor] = torch.tanh,
-                 actfout: Callable[[torch.tensor], torch.tensor] = torch.sigmoid):
-        self.rnn = RNNLeakyCell(input_size=input_size, hidden_size=hidden_size, tau=tau,
-                                hidden_weights=hidden_weights, input_weights=input_weights,
-                                spectral_radius=spectral_radius, actf=actf)
+    """
+
+    def __init__(
+        self,
+        input_size: int = 1,
+        hidden_size: int = 100,
+        output_size: int = 2,
+        tau: float = 4,
+        spectral_radius: float = 0.9,
+        input_weights: torch.tensor = None,
+        hidden_weights: torch.tensor = None,
+        actf: Callable[[torch.tensor], torch.tensor] = torch.tanh,
+        actfout: Callable[[torch.tensor], torch.tensor] = torch.sigmoid,
+    ):
+        self.rnn = RNNLeakyCell(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            tau=tau,
+            hidden_weights=hidden_weights,
+            input_weights=input_weights,
+            spectral_radius=spectral_radius,
+            actf=actf,
+        )
         self.readout = nn.Linear(hidden_size, output_size)
         self.actfout = actfout
 
@@ -37,17 +52,22 @@ class LeakyRNN():
 
 
 class Reservoir(RNNLeakyCell):
-    '''An implementation of a reservoir with analog units
+    """An implementation of a reservoir with analog units
 
     Arguments
     ---------
     *args, **kwargs: see LeakyRNN arguments
     readout_size: int - the number of features of the readout layer
     actfout: activation function - the activation function of the readout layer
-    '''
-    def __init__(self, *args, readout_size: int = 1,
-                 actfout: Callable[[torch.tensor], torch.tensor] = torch.sigmoid,
-                 **kwargs):
+    """
+
+    def __init__(
+        self,
+        *args,
+        readout_size: int = 1,
+        actfout: Callable[[torch.tensor], torch.tensor] = torch.sigmoid,
+        **kwargs
+    ):
         super(Reservoir, self).__init__(*args, bias=False, **kwargs)
         self.weight_ih.requires_grad_(False)
         self.weight_hh.requires_grad_(False)
@@ -58,7 +78,7 @@ class Reservoir(RNNLeakyCell):
         self.actfout = actfout
 
     def train(self, input, target, washout=0, ridge=None):
-        '''Training of the reservoir with paired input and target
+        """Training of the reservoir with paired input and target
 
         Arguments
         ---------
@@ -66,13 +86,15 @@ class Reservoir(RNNLeakyCell):
         target: 2D torch.tensor<# time steps, # batches, # output features>
         washout: int - if non zero, the first 'washout' time steps will be ignored during training
         ridge: float - the parameter of the ridge L2 regularization
-        '''
+        """
         with torch.no_grad():
             ret, hx = super(Reservoir, self).forward(input)
         ret, target = ret[washout:], target[washout:]
-        ret = torch.cat((ret, torch.ones((ret.size(0), ret.shape[1], 1), device=input.device)), 2)
-        ret = ret.reshape((ret.shape[0]*ret.shape[1], ret.shape[2]))
-        target = target.reshape((target.shape[0]*target.shape[1], target.shape[2]))
+        ret = torch.cat(
+            (ret, torch.ones((ret.size(0), ret.shape[1], 1), device=input.device)), 2
+        )
+        ret = ret.reshape((ret.shape[0] * ret.shape[1], ret.shape[2]))
+        target = target.reshape((target.shape[0] * target.shape[1], target.shape[2]))
         try:
             if ridge is None:
                 inv_xTx = torch.pinverse(ret.T @ ret)
@@ -80,8 +102,8 @@ class Reservoir(RNNLeakyCell):
                 I = torch.eye(self.hidden_size + 1)
                 I[-1, -1] = 0
                 inv_xTx = torch.pinverse(ret.T @ ret + ridge * I)
-        except(RuntimeError):
-            print('Issue with matrix inversion')
+        except (RuntimeError):
+            print("Issue with matrix inversion")
             return None
         xTy = ret.T @ target
         new_weights = (inv_xTx @ xTy).T
